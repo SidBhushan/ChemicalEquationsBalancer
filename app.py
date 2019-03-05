@@ -1,4 +1,7 @@
 import re
+from math import gcd
+from numpy.linalg import solve as solve_linear_equation
+from fractions import Fraction
 
 
 def balance():
@@ -31,7 +34,51 @@ def balance():
         return
     system_coefficients = []
     system_sums = []
-    for element in reactant_element_quantities.keys()
+    for element in reactant_element_quantities.keys():
+        system_sums.append(find_quantity_of(element, reactants[0]))
+        equation = []
+        for index in range(1, len(reactants)):
+            equation.append(-1 * find_quantity_of(element, reactants[index]))
+        for index in range(0, len(products)):
+            equation.append(find_quantity_of(element, products[index]))
+        system_coefficients.append(equation)
+    solution = solve_linear_equation(system_coefficients, system_sums)
+    solution_fractions = []
+    for coefficient in solution:
+        solution_fractions.append(Fraction(coefficient).limit_denominator())
+    common_denominator = gcd_list(list(filter(lambda x: x != -1, map(lambda fraction: fraction.denominator if fraction.denominator != 1 else -1, solution_fractions))))
+    integer_solution = list(map(lambda fraction: (fraction * common_denominator).numerator, solution_fractions))
+    balanced_coefficients = [common_denominator]
+    for coefficient in integer_solution:
+        balanced_coefficients.append(coefficient)
+    balanced_equation = f'{format_equation(balanced_coefficients, reactants)}->{format_equation(balanced_coefficients[len(reactants):], products)}'
+    print(f'Balanced Equation: {balanced_equation}')
+
+
+def format_equation(coefficients: list, compounds: list):
+    result = ''
+    for compound_index in range(0, len(compounds)):
+        result += str(coefficients[compound_index]) if coefficients[compound_index] != 1 else ''
+        for element in compounds[compound_index]:
+            result += element['element_name'] + (str(element['quantity']) if element['quantity'] != 1 else '')
+        result += '+'
+    return result[:-1]
+
+
+def gcd_list(input_list: list):
+    if len(input_list) == 0:
+        return 1
+    result = input_list[0]
+    for item in input_list:
+        result = gcd(result, item)
+    return result
+
+
+def find_quantity_of(element: str, compound: list):
+    for compound_element in compound:
+        if compound_element['element_name'] == element:
+            return compound_element['quantity']
+    return 0
 
 
 def calculate_quantities(compounds, coefficients, quantities):
